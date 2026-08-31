@@ -446,3 +446,34 @@ That distinction matters for the decision. A syntax error is visible and retryab
 **Output:** `results/eval_results.csv`, one row per model per question with the verdict, the reason, and the SQL that was generated. The console prints a per model score and a final scoreboard.
 
 Run size: 6 models times 20 questions = 120 billed API calls.
+
+
+## Step 12: Results and decision
+
+![Final scoreboard from the eval run](docs/img/final_scoreboard.png)
+
+### Observations
+
+- **The three US models took the top three spots and the three Chinese models took the bottom three.** A clean split, and not one the leaderboard predicted.
+- **The leaderboard ranking did not survive contact with my task.** Sonnet 5 was 14th and Grok 4.6 was 12th on the coding leaderboard, yet they finished first and second. GPT-5.6 Terra, my highest ranked candidate at 4th, came fourth here. Coding ability is a weak proxy for text to SQL on a specific schema, which is the whole justification for the custom eval.
+- **Failure modes differ more than the scores do.** The US models mostly failed by writing runnable SQL that returned wrong data. The Chinese models mostly failed by returning nothing at all, likely truncated by the 800 token cap.
+- **Every model failed question 10.** When no model passes, the question or the gold answer is the more likely culprit than the models.
+
+### Model by model
+
+| Model | Score | Monthly cost | Verdict |
+|---|---|---|---|
+| Claude Sonnet 5 | 95% | $3,750 | **Selected.** Most accurate, no SQL errors, fits the budget with room. |
+| Grok 4.6 | 90% | $1,500 | Runner up. One answer behind at 40 percent of the cost, the pick if budget tightens. |
+| GPT-5.6 Terra | 75% | $3,000 | All 5 failures were runnable SQL returning wrong data, the worst failure mode here. |
+| Kimi K3 | 70% | $4,050 | Second most expensive and mid accuracy. Wins on no axis. |
+| DeepSeek-V4-Pro | 65% | $390 | Cheapest by far and perfect on the hard tier, but collapsed on brutal. |
+| Qwen3.8 Max | 45% | $1,500 | Answered nothing on 11 of 20. Not deployable. |
+
+### Winner: Claude Sonnet 5
+
+Correctness was the stated top priority, and Sonnet 5 is the most accurate model that fits inside the 5,000 dollar budget. It also produced executable SQL on every single question, which no model below Grok 4.6 managed.
+
+### Limitations
+
+The gap to Grok 4.6 is one question, which is inside noise at n=20. Gold answers were drafted by Claude Opus 5, so a bias toward Sonnet 5 cannot be ruled out. And the empty responses from Qwen and DeepSeek may be a `max_tokens` artifact rather than model capability, so those two deserve a rerun at a higher cap before their scores are taken as final.
