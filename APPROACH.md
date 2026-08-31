@@ -397,3 +397,25 @@ OK      Claude Sonnet 5        anthropic/claude-sonnet-5
 All six live. Note the slugs drop the details the leaderboard carries, `deepseek-v4-pro` without the `0813` date suffix, so the OpenRouter version may not be exactly the build llm-stats benchmarked.
 
 **Output:** six verified slugs, ready for the eval loop.
+
+
+## Step 9: Writing the evaluator
+
+**Doing:** Deciding what counts as a correct answer.
+
+**Why string comparison fails.** Two completely different queries can be equally correct. Comparing generated SQL against gold SQL as text would fail models for writing valid alternatives. So the metric is **execution accuracy**: run both queries, compare the data that comes back.
+
+`src/evaluator.py` compares result sets, not query text. What it tolerates and what it does not:
+
+- **Column names ignored.** A model aliasing a column `total` instead of `runs` is not wrong.
+- **Numbers compared numerically.** 24395 and 24395.0 match, floats rounded to 4 places so precision noise does not fail a correct query.
+- **Row order ignored by default.** Only question 12 is flagged `order_sensitive`, since it asks for one row per season ordered by season.
+- **Row count must match exactly.** This is the strict part. It stops a model passing by returning the full ranked list when the question asked for the top one.
+
+**The flexible column rule.** For "which bowler has the best economy", some models return just the name, others return name plus the economy value. Both answer the question. So a difference of exactly one column is tolerated, and the smaller result must appear as a subset of the larger, row by row.
+
+**Known leniency.** In that flexible branch, rows are compared as unordered sets of values with no key alignment. A model returning the right values in a wrong association would pass. With 19 of 20 questions returning a single row, this has almost no room to bite here, but it is a real weakness of the method.
+
+Failure reasons are recorded separately: `sql_error` when the generated SQL does not run, `mismatch` when it runs but returns different data. Those are different problems, one retryable and one silently wrong, so they get counted apart in the results.
+
+**Output:** `src/evaluator.py`, exposing `evaluate_one(gold_df, generated_df, order_sensitive)`.
