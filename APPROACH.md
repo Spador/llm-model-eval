@@ -419,3 +419,30 @@ All six live. Note the slugs drop the details the leaderboard carries, `deepseek
 Failure reasons are recorded separately: `sql_error` when the generated SQL does not run, `mismatch` when it runs but returns different data. Those are different problems, one retryable and one silently wrong, so they get counted apart in the results.
 
 **Output:** `src/evaluator.py`, exposing `evaluate_one(gold_df, generated_df, order_sensitive)`.
+
+
+## Step 10: Building the eval loop
+
+**Doing:** Wiring the pieces together into one script that runs every model over every question and records the result.
+
+`src/main.py` loops model by model. For each of the six, it walks all 20 questions and does four things per question: generate the SQL, execute it against the database, compare the result to gold, log the verdict.
+
+**The prompt is fixed.** Same system message, same schema text, same format for every model and every question. Only the question changes. That is the point, since any accuracy difference has to come from the model and not from the prompt.
+
+Settings held constant: `temperature=0` for repeatability, `max_tokens=800` because SQL is short and a low cap avoids the credit reservation error on some providers.
+
+**Cleaning the output.** Step 7 showed models wrap their SQL in markdown fences despite the prompt saying to return only the query. `clean_sql` pulls the contents out of a fenced block, drops any preamble before the first SELECT or WITH, and strips trailing semicolons and backticks. Without this, every query would fail to execute and every model would score zero.
+
+**Gold results are not re-executed.** They were frozen into `gold_result_json` when the golden dataset was built, and the loop rebuilds a DataFrame from that JSON. So the reference never changes between runs, and a model is compared against exactly the same target every time.
+
+**Failures are separated.** Three distinct outcomes get logged rather than collapsed into "wrong":
+
+- `gen_error` - the API call itself failed, so nothing was generated
+- `sql_error` - SQL came back but did not execute
+- `mismatch` - SQL ran fine but returned different data
+
+That distinction matters for the decision. A syntax error is visible and retryable. A mismatch is a query that runs clean and returns a wrong number, which is exactly the failure mode this feature cannot afford.
+
+**Output:** `results/eval_results.csv`, one row per model per question with the verdict, the reason, and the SQL that was generated. The console prints a per model score and a final scoreboard.
+
+Run size: 6 models times 20 questions = 120 billed API calls.
