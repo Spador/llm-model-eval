@@ -214,3 +214,38 @@ score = 0.9 x normalized rating + 0.1 x normalized latency
 Note that cost does not appear in this score. Cost was already applied as a hard cutoff, so every model being ranked here is affordable. Ranking cheapness on top of that would penalize a model for spending a budget I have already approved.
 
 **Output:** the five highest scoring models, which become the candidates for the custom eval.
+
+
+
+## Step 5: Shortlisting the candidates
+
+**Doing:** Applying the price cap to the ranked list, then picking the finalists for the custom eval.
+
+### The cap
+
+From the step 2 math, the ceiling is **$6.67 per million tokens** blended at 4:1. The leaderboard already prices at 4:1 and my usage is 400 in and 100 out, which is the same ratio, so I compare against the price column directly with no conversion.
+
+Anything above 6.67 is removed before accuracy is considered at all.
+
+### What the cap removes
+
+The top of the leaderboard does not survive it. GPT-5.6 Sol at $10.00, Claude Fable 5 at $18.00, and Claude Opus 4.8 at $9.00 are all out. Claude Mythos Preview has no published price or speed and is preview only, so it is not deployable either.
+
+Worth stating plainly: the three highest rated coding models in the world are irrelevant to this problem. At 1.5M requests a month, price decides before quality gets a say.
+
+### The six candidates
+
+| Model | Org | Country |
+|---|---|---|
+| GPT-5.6 Terra | OpenAI | US |
+| Kimi K3 | Moonshot AI | China |
+| DeepSeek-V4-Pro-0813 | DeepSeek | China |
+| Qwen3.8 Max | Alibaba | China |
+| Grok 4.6 | xAI | US |
+| Claude Sonnet 5 | Anthropic | US |
+
+**Why these six.** All sit within the price cap and rank well on the combined score. Beyond that I deliberately spread the selection across labs and countries rather than taking the top six by score. Models from the same lab tend to share training data, tokenizers, and post training recipes, so six variants of one family would tell me far less than six independent ones. If a shared weakness on my schema exists, a diverse set is what exposes it.
+
+**Why six and not five.** The extra candidate costs one more pass over the golden dataset, which is cheap compared to the information it adds.
+
+**Output:** six models to run the custom eval against.
