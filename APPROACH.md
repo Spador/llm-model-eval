@@ -149,3 +149,68 @@ So I used a coding leaderboard instead. Writing SQL is a coding task, so general
 **Output:** a candidate pool with accuracy, price and speed for each model.
 
 ![Best AI for Coding leaderboard, llm-stats.com](docs/img/leaderboard.png)
+
+
+## Step 4: Filtering by cost and ranking the candidates
+
+**Doing:** Removing every model that breaks the budget, then ranking what is left on accuracy and speed.
+
+### Why the blended price works here
+
+The leaderboard lists price as a 4:1 blend, meaning it assumes four input tokens for every one output token. My own usage is 400 input tokens and 100 output tokens, which is also 4:1. Since the ratios match, I can use the listed blended price directly instead of splitting input and output pricing per model.
+
+### Cost per model
+
+```
+tokens per request  = 400 + 100 = 500
+requests per month  = 50,000 x 30 = 1,500,000
+tokens per month    = 500 x 1,500,000 = 750,000,000 = 750M
+```
+
+Prices are quoted per million tokens, so:
+
+```
+monthly cost = 750 x blended price per million
+```
+
+Setting that against the budget:
+
+```
+750 x price <= 5000
+price <= 5000 / 750
+price <= $6.67 per million tokens
+```
+
+**That is the filter.** Any model priced above 6.67 dollars per million blended tokens cannot run this feature at 50k questions a day. It gets dropped before I look at its accuracy at all.
+
+Illustrative check: a model at 3.00 dollars per million costs 750 x 3 = 2250 dollars a month, so it passes with room left. A model at 10.00 costs 7500 a month and is out.
+
+### Ranking what survives
+
+Two columns matter now, the coding rating and the latency. They are on different scales, so I normalize both to a 0 to 1 range before combining them.
+
+**Rating**, where higher is better:
+
+```
+normalized rating = (rating - min rating) / (max rating - min rating)
+```
+
+**Latency**, where lower is better, so the formula is inverted:
+
+```
+normalized latency = (max latency - latency) / (max latency - min latency)
+```
+
+Both now read the same way. 1 is the best model in that column and 0 is the worst.
+
+### Combining them
+
+```
+score = 0.9 x normalized rating + 0.1 x normalized latency
+```
+
+**Why 90 to 10.** Correctness is the stated top priority, since a wrong stat gets screenshotted and shared. Latency still counts but it cannot outweigh accuracy. The output is only about 100 tokens, so even a slower model finishes a query quickly. If the feature were generating a long essay, generation speed would compound over thousands of tokens and deserve far more weight. For a short query it does not.
+
+Note that cost does not appear in this score. Cost was already applied as a hard cutoff, so every model being ranked here is affordable. Ranking cheapness on top of that would penalize a model for spending a budget I have already approved.
+
+**Output:** the five highest scoring models, which become the candidates for the custom eval.

@@ -1,0 +1,51 @@
+name,rating,price_blended,speed
+GPT-5.6 Sol,48.91,10.0,10
+Claude Fable 5,47.23,18.0,12
+Claude Mythos Preview,45.34,,
+Kimi K3,45.03,5.4,6
+GPT-5.6 Terra,44.64,4.0,41
+GLM-5.3,44.46,2.0,4
+DeepSeek-V4-Pro-0813,42.95,0.522,11
+Claude Opus 4.8,42.33,9.0,3
+Claude Opus 5,41.3,9.0,6
+Hy4 preview,40.85,,
+Qwen3.8 Max,40.67,1.46,10
+GPT-5.5,39.52,10.0,33
+Grok 4.6,38.5,2.8,12
+GPT-5.6 Luna,38.15,0.4,17
+Claude Sonnet 5,37.94,3.6,21
+Claude Opus 4.7,37.29,9.0,60
+Gemini 3.7 Flash,37.22,1.35,5
+Qwen3.8-Flash-Next,36.64,,
+DeepSeek-V4-Flash-Vision-Exp,36.6,0.308,
+Qwen3.8 Flash,36.59,0.21399999999999997,
+Grok 4.5,36.56,2.8,80
+Qwen3.7 Max,36.45,1.1800000000000002,7
+GLM-5.2,36.25,1.3599999999999999,16
+GLM-5.3-Flash,36.05,0.22000000000000003,
+Muse Spark 1.1,35.45,1.85,32
+Seed 2.1 Pro,34.47,,
+DeepSeek-V4-Flash-0731,34.35,0.10800000000000001,20
+Kimi K2.6,33.82,1.3,190
+Hy3,33.38,,
+Claude Opus 4.6,33.28,9.0,5
+Gemini 3.5 Flash Cyber,33.27,,
+MiniMax M3,33.03,0.42000000000000004,16
+Qwen3.8-27B,32.41,,
+DeepSeek-V4-Pro-Max,32.41,,
+Gemini 3.5 Flash,31.9,3.0,
+GPT-5.4,31.82,2.18,59
+Muse Spark 1.2,31.73,0.12000000000000002,27
+Seed 2.1 Turbo,31.65,,3
+Gemini 3.1 Pro,31.48,5.0,
+GLM-5.1,31.1,2.0,19
+Kimi K2.7 Code,31.07,,
+MiMo-V2.5-Pro,31.06,0.522,
+Qwen3.7-Plus,30.99,,3
+Laguna S 2.1,30.9,0.12000000000000002,
+GPT-5.3 Codex,30.07,4.2,
+Gemini 3.6 Flash,29.92,2.7,3
+Inkling-Small,29.75,0.48,148
+DeepSeek-V4-Flash-Max,28.92,0.168,
+Claude Opus 4.5,28.59,,3
+Qwen3.6 Plus,28.05,0.5599999999999999,
