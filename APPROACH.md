@@ -344,3 +344,34 @@ Question 12 returns four rows, one per season, and the rest return one. That var
 - 20 questions is a small sample. The confidence interval on any accuracy figure will be wide, and a one or two question gap between models is noise.
 - Ground truth is model generated, not expert verified.
 - No easy or medium tier, so aggregate accuracy will look low compared to a public leaderboard and is not comparable to one.
+
+
+## Step 7: Testing the OpenRouter connection
+
+**Doing:** Sending one question to one model before building the full loop, so I know the plumbing works.
+
+`src/first_test.py` reads `data/schema.sql`, builds the prompt, and sends a single question to `openai/gpt-4o` via OpenRouter. No loop, no scoring, no cleaning.
+
+Question: *Who scored the most runs in 2024?*
+
+Raw output:
+```
+SELECT batter, SUM(batsman_runs) AS total_runs
+FROM matches
+JOIN deliveries ON matches.id = deliveries.match_id
+WHERE season = '2024'
+GROUP BY batter
+ORDER BY total_runs DESC
+LIMIT 1;
+```
+
+
+Three things confirmed here:
+
+- Auth and routing work, and the schema is being read correctly. The model used the real column and table names.
+- The join is correct even though the schema declares no foreign key. Models infer it from `matches.id` and `deliveries.match_id`.
+- **The output is wrapped in markdown fences**, despite the system prompt saying to return only the SQL query. That cannot be executed as is, so the eval loop needs a cleaning step to strip fences before running anything. Good to find out now rather than mid run.
+
+**Note on the package.** The tutorial repo imports `langchain_openrouter`, which is not on PyPI. I used `ChatOpenAI` from `langchain-openai` with `base_url` set to `https://openrouter.ai/api/v1` instead. Same interface, one extra argument.
+
+**Output:** connection verified and a confirmed need for `clean_sql` in the next step.
