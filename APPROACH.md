@@ -122,3 +122,30 @@ Dividing by 150 gives a one line rule to apply to any leaderboard row, with pric
 Worked example: if a model prices output at 4x input, this reduces to 8 * P_in <= 33.3, so input must be at or under **$4.17 per million**.
 
 **Output:** A hard price filter to apply during shortlisting, plus the observation that input tokens are 80 percent of monthly volume, so input price dominates the bill.
+
+
+## Step 3: Choosing a leaderboard
+
+**Doing:** Finding a leaderboard to shortlist candidates from.
+
+Started with the obvious choice, text to SQL benchmarks:
+
+- **Spider** (Yale), the original cross domain one. Closed to new submissions since Feb 2024.
+- **Spider 2.0**, enterprise scale. 1000+ column schemas, BigQuery and Snowflake.
+- **BIRD-SQL**, 12k question and SQL pairs across 95 databases.
+- **WikiSQL**, superseded.
+
+Dropped all of them:
+
+- The top entries are not plain models. They are full systems that add extra steps around the model, like picking relevant tables first or generating several queries and voting on the best one. I need a single model answering a single prompt, so their scores do not apply to me.
+- Many of the listed models are fine tuned versions built for the benchmark. I cannot call those through an API.
+- These leaderboards only rank accuracy. They do not show price or speed, and those are two of my three constraints.
+- The difficulty does not match my case. Spider 2.0 uses databases with over 1000 columns, while mine has two tables and 37 columns. A score there tells me little about my schema.
+
+So I used a coding leaderboard instead. Writing SQL is a coding task, so general coding ability is a reasonable signal here. These leaderboards are updated regularly. The models on them are public ones I can call through an API. They also list price and speed, which I need for the cost filter from step 2.
+
+**Chose:** llm-stats.com, Best AI for Coding.
+
+**Output:** a candidate pool with accuracy, price and speed for each model.
+
+![Best AI for Coding leaderboard, llm-stats.com](docs/img/leaderboard.png)
