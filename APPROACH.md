@@ -375,3 +375,25 @@ Three things confirmed here:
 **Note on the package.** The tutorial repo imports `langchain_openrouter`, which is not on PyPI. I used `ChatOpenAI` from `langchain-openai` with `base_url` set to `https://openrouter.ai/api/v1` instead. Same interface, one extra argument.
 
 **Output:** connection verified and a confirmed need for `clean_sql` in the next step.
+
+
+## Step 8: Verifying the model slugs
+
+**Doing:** Confirming all six candidates are actually callable on OpenRouter before spending anything on a run.
+
+The leaderboard uses display names, OpenRouter uses its own slugs, and the two do not always line up. A wrong slug fails partway through the eval, after the models ahead of it in the loop have already been paid for. Worth thirty seconds to check.
+
+`src/model_openrouter_slug.py` holds the six as `(display_name, slug)` pairs so result tables show readable names. `src/check_slugs.py` pulls the live model list from OpenRouter and checks each one against it. That endpoint needs no auth, so the check costs nothing.
+
+```
+OK      GPT-5.6 Terra          openai/gpt-5.6-terra
+OK      Kimi K3                moonshotai/kimi-k3
+OK      DeepSeek-V4-Pro-0813   deepseek/deepseek-v4-pro
+OK      Qwen3.8 Max            qwen/qwen3.8-max
+OK      Grok 4.6               x-ai/grok-4.6
+OK      Claude Sonnet 5        anthropic/claude-sonnet-5
+```
+
+All six live. Note the slugs drop the details the leaderboard carries, `deepseek-v4-pro` without the `0813` date suffix, so the OpenRouter version may not be exactly the build llm-stats benchmarked.
+
+**Output:** six verified slugs, ready for the eval loop.
