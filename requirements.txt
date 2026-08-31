@@ -1,6 +1,6 @@
 requests
 pandas
 python-dotenv
-langchain-openai
+langchain-openrouter
 langchain-core
 tabulate

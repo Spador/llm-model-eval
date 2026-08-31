@@ -249,3 +249,98 @@ Worth stating plainly: the three highest rated coding models in the world are ir
 **Why six and not five.** The extra candidate costs one more pass over the golden dataset, which is cheap compared to the information it adds.
 
 **Output:** six models to run the custom eval against.
+
+
+## Step 6: Building the database and the golden dataset
+
+**Doing:** Setting up the database the queries run against, extracting the schema for the prompt, and creating the question set the models are graded on.
+
+### The database
+
+Source is the IPL complete dataset from Kaggle, two CSVs: `matches.csv` at one row per match, and `deliveries.csv` at one row per ball bowled.
+
+`src/db.py` filters both to seasons 2021 to 2024 and loads them into SQLite. Four seasons keeps the database small enough to commit and query instantly, while still supporting aggregation across years. The full history would slow the eval down without making it more informative.
+
+One thing worth noting on the filter. The `season` column is inconsistent in the raw data, some rows read "2021" and others "2020/21", so filtering on that string is unreliable. I filtered on the parsed match date instead and took the year from it.
+
+Result:
+
+```
+matches 2021-2024: 279
+deliveries: 67303
+orphan deliveries (should be 0): 0
+date range: ('2021-04-09 00:00:00', '2024-05-26 00:00:00')
+seasons: ['2021', '2022', '2023', '2024']
+```
+
+The orphan check confirms every delivery links to a match that survived the filter. And the season values came out as clean four digit years in this slice, so a model can write `season = '2023'` and it will work. One less source of failure than I expected.
+
+### The schema
+
+`src/schema_extractor.py` pulls the CREATE TABLE statements straight from the built database and writes `data/schema.sql`. The schema text goes into every prompt, so it has to come from the real database rather than being typed by hand.
+
+It came out at 84 words across two tables, which sits comfortably inside the roughly 400 token context budget from step 2.
+
+The extractor also prints sample rows and the distinct values of the string columns, which matters for the next part.
+
+### Value domains
+
+The schema shows column names and types but not what the string columns actually contain. A model has to guess those, and a wrong guess returns zero rows silently instead of raising an error. So I pulled them:
+
+```
+extras_type:     [None, 'noballs', 'wides', 'legbyes', 'byes']
+dismissal_kind:  [None, 'run out', 'caught', 'caught and bowled', 'lbw',
+                  'bowled', 'stumped', 'hit wicket', 'retired hurt',
+                  'retired out', 'obstructing the field']
+```
+
+Two things follow from this. `extras_type` is NULL on ordinary deliveries rather than empty or zero, so any query counting legal balls has to handle NULL explicitly. A plain `WHERE extras_type NOT IN ('wides','noballs')` drops every normal ball, because NULL comparisons in SQL evaluate to NULL rather than true. That is the single biggest trap in this dataset and several questions are built around it.
+
+And the values are space separated lowercase, `'run out'` not `'run_out'`, `'wides'` not `'wide'`. Exact strings matter.
+
+### The golden dataset
+
+20 questions, split 8 hard and 12 brutal, defined in `src/golden_dataset_generator.py`. Each entry is the natural language question plus the reference SQL that answers it.
+
+This is deliberately a stress tier with no easy or medium questions. The point is to separate the six candidates, and simple lookups would not do that, since every frontier model handles those. The gradient is by how many traps compound in one query:
+
+- **hard**, 1 to 2 traps: a ratio, or a NULL filter, or a HAVING threshold, or a self join
+- **brutal**, 3 or more: ratios plus NULL handling plus thresholds plus subqueries plus cricket domain rules
+
+The traps being tested: NULL sensitive filtering, rate and ratio computation, HAVING thresholds, legal ball counting, wicket attribution excluding run outs, multi level subqueries, self referential team logic on team1, team2, and winner, and innings phase logic for powerplay and death overs.
+
+Domain definitions are spelled out inside the questions themselves. Question 10 states that economy is runs per over of six legal balls and that wides and no balls are excluded. That is intentional, the eval is testing SQL construction, not whether a model knows cricket.
+
+### How the gold SQL was written
+
+Ideally a human expert with domain knowledge writes and verifies every gold query. The golden dataset is the ground truth for the entire eval, so an error in it silently corrupts every score that follows.
+
+Given time and resource constraints, I used a stronger model, Claude Opus 5, to draft the queries, then executed every one against the database to confirm it runs and returns a sensible result.
+
+This is a real limitation and I am recording it as one. A model generated ground truth can encode the same misunderstanding of the schema that I am testing other models for. It also risks favouring candidates that reason similarly to the model that wrote the answers. Executing every query catches syntax errors and empty results, but it cannot catch a query that runs cleanly and answers a subtly different question than the one asked.
+
+### Validation
+
+All 20 queries execute and return non empty results:
+
+```
+[hard  ] # 4  OK  rows=1   sample=('YS Chahal', 1391)
+[brutal] #10  OK  rows=1   sample=('SP Narine', 6.758139534883721)
+[brutal] #12  OK  rows=4   sample=('2021', 'Chennai Super Kings', 2733)
+[brutal] #19  OK  rows=1   sample=('DL Chahar', 'Shubman Gill', 4)
+
+20/20 passed
+spread: {'hard': 8, 'brutal': 12}
+```
+
+Spot checking a few against cricket knowledge: Chahal topping legal balls bowled, Narine with the best economy, Karthik leading death over runs, Russell with the best bowling average. All plausible for these seasons, which is a weak but real signal that the queries answer the questions asked.
+
+Question 12 returns four rows, one per season, and the rest return one. That variation is deliberate, since the evaluator has to handle multi row results and not just single answers.
+
+**Output:** `data/ipl_2021_2024.db`, `data/schema.sql`, and 20 validated questions with reference SQL.
+
+### Limitations to carry forward
+
+- 20 questions is a small sample. The confidence interval on any accuracy figure will be wide, and a one or two question gap between models is noise.
+- Ground truth is model generated, not expert verified.
+- No easy or medium tier, so aggregate accuracy will look low compared to a public leaderboard and is not comparable to one.
