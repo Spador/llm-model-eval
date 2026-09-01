@@ -35,7 +35,7 @@ Convert a natural language question into SQL against a known schema. The databas
 Three stages: turn the constraints into a price ceiling, use a leaderboard to narrow the field, then run a custom eval to decide.
 
 ```mermaid
-flowchart TD
+flowchart LR
     subgraph P1[" 1 · REQUIREMENTS "]
         direction TB
         A[Read the problem<br/>task is text to SQL] --> B[Fix the prompt<br/>~400 in / ~100 out]
@@ -58,9 +58,9 @@ flowchart TD
         L --> M[Eval loop<br/>6 models x 20 questions]
     end
 
-    C --> D
-    G --> H
-    M --> N[Winner: Claude Sonnet 5<br/>19/20 · $3,750 per month]
+    C ==> D
+    G ==> H
+    M ==> N[Winner<br/>Claude Sonnet 5<br/>19/20 · $3,750 per month]
 
     classDef step fill:#1e293b,stroke:#64748b,stroke-width:1px,color:#f1f5f9
     classDef gate fill:#fbbf24,stroke:#b45309,stroke-width:2px,color:#1c1917
