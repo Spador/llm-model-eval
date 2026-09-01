@@ -34,43 +34,48 @@ Convert a natural language question into SQL against a known schema. The databas
 
 Three stages: turn the constraints into a price ceiling, use a leaderboard to narrow the field, then run a custom eval to decide.
 
+### 1 · Requirements
+
 ```mermaid
 flowchart LR
-    subgraph P1[" 1 · REQUIREMENTS "]
-        direction TB
-        A[Read the problem<br/>task is text to SQL] --> B[Fix the prompt<br/>~400 in / ~100 out]
-        B --> C[Token math<br/>750M tokens per month<br/>cap = $6.67 per M]
-    end
-
-    subgraph P2[" 2 · SHORTLIST "]
-        direction TB
-        D[Pick a leaderboard<br/>SQL benchmarks rejected<br/>use llm-stats coding board] --> E[Fetch all models<br/>rating · price · speed]
-        E --> F[Normalize and rank<br/>0.9 rating + 0.1 speed]
-        F --> G[Apply price cap<br/>6 candidates]
-    end
-
-    subgraph P3[" 3 · CUSTOM EVAL "]
-        direction TB
-        H[Build database<br/>IPL 2021-2024] --> I[Extract schema<br/>into the prompt]
-        I --> J[Golden dataset<br/>20 questions + gold SQL]
-        J --> K[Smoke test<br/>+ verify slugs]
-        K --> L[Evaluator<br/>execution accuracy]
-        L --> M[Eval loop<br/>6 models x 20 questions]
-    end
-
-    C ==> D
-    G ==> H
-    M ==> N[Winner<br/>Claude Sonnet 5<br/>19/20 · $3,750 per month]
+    A[Read the problem<br/>task is text to SQL] --> B[Fix the prompt<br/>~400 in / ~100 out]
+    B --> C[Token math<br/>750M tokens per month<br/>cap = $6.67 per M]
 
     classDef step fill:#1e293b,stroke:#64748b,stroke-width:1px,color:#f1f5f9
     classDef gate fill:#fbbf24,stroke:#b45309,stroke-width:2px,color:#1c1917
-    classDef win fill:#10b981,stroke:#047857,stroke-width:2px,color:#052e16
-    classDef phase fill:#0f172a,stroke:#475569,stroke-width:1px,color:#94a3b8
+    class A,B step
+    class C gate
+```
 
-    class A,B,D,E,F,H,I,J,K,L,M step
-    class C,G gate
+### 2 · Shortlist
+
+```mermaid
+flowchart LR
+    D[Pick a leaderboard<br/>SQL benchmarks rejected<br/>use llm-stats coding board] --> E[Fetch all models<br/>rating · price · speed]
+    E --> F[Normalize and rank<br/>0.9 rating + 0.1 speed]
+    F --> G[Apply price cap<br/>6 candidates]
+
+    classDef step fill:#1e293b,stroke:#64748b,stroke-width:1px,color:#f1f5f9
+    classDef gate fill:#fbbf24,stroke:#b45309,stroke-width:2px,color:#1c1917
+    class D,E,F step
+    class G gate
+```
+
+### 3 · Custom eval
+
+```mermaid
+flowchart LR
+    H[Build database<br/>IPL 2021-2024] --> I[Extract schema<br/>into the prompt]
+    I --> J[Golden dataset<br/>20 questions + gold SQL]
+    J --> K[Smoke test<br/>+ verify slugs]
+    K --> L[Evaluator<br/>execution accuracy]
+    L --> M[Eval loop<br/>6 models x 20 questions]
+    M --> N[Winner<br/>Claude Sonnet 5<br/>19/20 · $3,750 per month]
+
+    classDef step fill:#1e293b,stroke:#64748b,stroke-width:1px,color:#f1f5f9
+    classDef win fill:#10b981,stroke:#047857,stroke-width:2px,color:#052e16
+    class H,I,J,K,L,M step
     class N win
-    class P1,P2,P3 phase
 ```
 
 Full walkthrough with reasoning at each step: **[APPROACH.md](APPROACH.md)**
